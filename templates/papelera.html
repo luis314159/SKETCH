@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Dibuja una fruta</title>
+    <style>
+        canvas { border: 1px solid black; }
+        body {
+                background-color: #173A7B;
+                color: white;
+                text-align: center;
+            }
+
+
+    </style>
+    <link rel="icon" sizes="192x192" href="https://static.wixstatic.com/media/50abbb_e0b55473e4374fc0b1bd7295cb14c06e%7Emv2.png/v1/fill/w_32%2Ch_32%2Clg_1%2Cusm_0.66_1.00_0.01/50abbb_e0b55473e4374fc0b1bd7295cb14c06e%7Emv2.png">
+</head>
+<body>
+
+
+    <!-- Añadir el logo de ULSA a la izquierda del título -->
+    <div style="display: flex; justify-content: center; align-items: center;">
+        <img src="https://static.wixstatic.com/media/50abbb_734c476993ab44d887e1d59ed12e5767~mv2.png/v1/crop/x_0,y_140,w_1846,h_636/fill/w_219,h_75,al_c,q_85,usm_0.66_1.00_0.01,enc_auto/ULSA%20LOGO%20BANCO%20PNG.png" alt="ULSA LOGO BANCO PNG.png" style="width:175px;height:60px;object-fit:cover" srcset="https://static.wixstatic.com/media/50abbb_734c476993ab44d887e1d59ed12e5767~mv2.png/v1/crop/x_0,y_140,w_1846,h_636/fill/w_219,h_75,al_c,q_85,usm_0.66_1.00_0.01,enc_auto/ULSA%20LOGO%20BANCO%20PNG.png" fetchpriority="high">
+        <h1>Dibuja una fruta</h1>
+    </div>
+
+    
+    <canvas id="lienzo" width="448" height="448"></canvas>
+    
+    <select id="modo">
+        <option value="manual">Manual</option>
+        <option value="tiempo">Por tiempo</option>
+    </select>
+
+
+    
+    <p id="temporizador"></p>
+
+    <form method="POST" action="{{ url_for('predict') }}">
+        <input type="hidden" id="imagen" name="imagen">
+        <button type="submit" id="predict">Generar predicción</button>
+    </form>
+
+    <form method="POST" action="{{ url_for('restart') }}">
+        <button type="submit">Reiniciar</button>
+    </form>
+
+    {% if prediccion %}
+        <h2>Tu fruta es {{ prediccion }}</h2>
+    {% endif %}
+
+    <script>
+        var canvas = document.getElementById('lienzo');
+        var ctx = canvas.getContext('2d');
+        var modoSelect = document.getElementById('modo');
+        var predictButton = document.getElementById('predict');
+        var imgInput = document.getElementById('imagen');
+        var temporizador = document.getElementById('temporizador');
+        var isDrawing = false;
+        var timer = null;
+        var counter = 15;
+
+        function updateCounter() {
+            if(counter > 0) {
+                temporizador.textContent = "Tiempo restante: " + counter + " segundos";
+                counter--;
+            } else {
+                temporizador.textContent = "";
+                predictButton.click();
+            }
+        }
+
+        function startDrawing(e) {
+            isDrawing = true;
+            ctx.beginPath();
+
+            if(modoSelect.value === 'tiempo') {
+                if(timer !== null) {
+                    clearTimeout(timer);
+                }
+                counter = 15;
+                updateCounter();
+                timer = setInterval(updateCounter, 1000);
+            }
+        }
+
+
+        function stopDrawing(e) {
+            isDrawing = false;
+            if(timer !== null) {
+                clearTimeout(timer);
+                temporizador.textContent = "";
+            }
+        }
+
+        canvas.addEventListener('mousedown', startDrawing);
+        canvas.addEventListener('mouseup', stopDrawing);
+        canvas.addEventListener('mouseout', stopDrawing);
+
+        canvas.addEventListener('mousemove', function(e) {
+            if (!isDrawing) return;
+            ctx.lineWidth = 10;
+            ctx.lineCap = 'round';
+            ctx.strokeStyle = 'black';
+
+            ctx.lineTo(e.clientX - canvas.offsetLeft, e.clientY - canvas.offsetTop);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(e.clientX - canvas.offsetLeft, e.clientY - canvas.offsetTop);
+        });
+
+        predictButton.addEventListener('click', function(e) {
+            if(timer !== null) {
+                clearInterval(timer);
+                temporizador.textContent = "";
+            }
+            e.preventDefault();
+            var dataURL = canvas.toDataURL();
+            imgInput.value = dataURL;
+            e.target.form.submit();
+        });
+        
+        // Para limpiar el lienzo cuando el usuario haga clic en "Reiniciar"
+        var restartButton = document.querySelector("form[action*='restart']");
+        restartButton.addEventListener('submit', function() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            if(timer !== null) {
+                clearInterval(timer);
+                temporizador.textContent = "";
+            }
+        });
+
+    </script>
+</body>
+</html>
